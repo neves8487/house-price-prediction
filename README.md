@@ -92,8 +92,59 @@ python preprocessamento.py
 
 ---
 
-## 📈 Próximos Passos
-- [ ] Treino do modelo de referência linear com regularização (*Ridge / Lasso*).
-- [ ] Otimização de modelos de *Gradient Boosting* (*LightGBM* e *XGBoost*).
-- [ ] *Blending / Stacking Ensemble* das previsões.
-- [ ] Submissão final e validação no Kaggle Leaderboard.
+---
+
+## 🏆 3. Modelação e Resultados (5-Fold Cross-Validation)
+
+Utilizámos uma estratégia de validação cruzada robusta com 5 folds, avaliando com a métrica oficial **RMSLE** (*Root Mean Squared Log Error*):
+
+| Posição | Modelo | RMSLE CV (Menor é Melhor) | Notas |
+| :---: | :--- | :---: | :--- |
+| **🥇 #1** | **ENSEMBLE (Blend Ponderado)** | **0.1115** | Combinação ponderada de lineares e árvores |
+| **🥈 #2** | **Lasso (Linear L1)** | **0.1148** | Seleção esparsa de variáveis com regularização |
+| **🥉 #3** | **Ridge (Linear L2)** | **0.1152** | Regularização quadrática suave |
+| **#4** | **XGBoost** | **0.1176** | Gradient Boosted Trees (1200 estimators) |
+| **#5** | **LightGBM** | **0.1214** | Gradient Boosted Trees rápido |
+
+> **Insight Teórico**: O **Ensemble** bateu todos os modelos individuais isolados, demonstrando o poder de combinar abordagens lineares com modelos baseados em árvores.
+
+---
+
+## 📊 4. Importância das Características (*Feature Importance*)
+
+O gráfico gerado em `plots/importancia_features.png` demonstra que as variáveis de **área total útil (`TotalSF`)**, **qualidade geral (`OverallQual`)**, **área habitável (`GrLivArea`)** e **idade do imóvel (`HouseAge`)** foram as mais decisivas na previsão do preço.
+
+---
+
+## 🚀 Como Executar Localmente
+
+### 1. Criar e ativar o ambiente virtual:
+```powershell
+python -m venv .venv
+.\.venv\Scripts\activate
+```
+
+### 2. Instalar as dependências:
+```powershell
+pip install pandas numpy scikit-learn lightgbm xgboost matplotlib seaborn
+```
+
+### 3. Executar o pipeline completo:
+```powershell
+# 1. Análise exploratória inicial (gera plots/exploracao_inicial.png)
+python exploracao_inicial.py
+
+# 2. Análise de missing values (gera plots/analise_nulos.png)
+python analise_nulos.py
+
+# 3. Pré-processamento e geração dos ficheiros limpos
+python preprocessamento.py
+
+# 4. Treino com 5-Fold CV, Ensemble e geração do submission.csv
+python treinar_modelos.py
+```
+
+---
+
+## 📤 5. Submissão no Kaggle
+O ficheiro final [submission.csv](submission.csv) contém 1.459 previsões prontas para upload na página da competição do Kaggle.
