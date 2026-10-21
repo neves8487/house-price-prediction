@@ -18,10 +18,13 @@ house_price/
 │   └── test_clean.csv          # Dados de teste pré-processados (zero nulos)
 ├── plots/
 │   ├── exploracao_inicial.png  # Gráficos da distribuição e correlações
-│   └── analise_nulos.png       # Gráfico com o ranking de missing values
+│   ├── analise_nulos.png       # Gráfico com o ranking de missing values
+│   └── importancia_features.png# Top 15 features mais decisivas no modelo
 ├── exploracao_inicial.py       # Script de Análise Exploratória (EDA)
 ├── analise_nulos.py            # Script de mapeamento e interpretação de nulos
 ├── preprocessamento.py         # Pipeline de Feature Engineering e Encoding
+├── treinar_modelos.py          # Treino com 5-Fold CV, Ensemble e previsões
+├── submission.csv              # Ficheiro final de submissão do Kaggle
 ├── .gitignore
 └── README.md
 ```
@@ -62,35 +65,6 @@ Na primeira fase, explorámos a distribuição do preço e calculámos o coefici
 - `TotalPorchSF`: Soma das áreas de varandas e alpendres.
 - `OverallScore`: Interação multiplicativa entre qualidade e condição ($\text{OverallQual} \times \text{OverallCond}$).
 - Indicadores binários: `HasPool`, `HasGarage`, `HasBasement`, `HasFireplace`, `Has2ndFloor`.
-
----
-
-## 🚀 Como Executar Localmente
-
-### 1. Criar e ativar o ambiente virtual:
-```powershell
-python -m venv .venv
-.\.venv\Scripts\activate
-```
-
-### 2. Instalar as dependências:
-```powershell
-pip install pandas numpy scikit-learn lightgbm xgboost matplotlib seaborn
-```
-
-### 3. Executar os scripts:
-```powershell
-# Análise exploratória inicial (gera plots/exploracao_inicial.png)
-python exploracao_inicial.py
-
-# Análise de missing values (gera plots/analise_nulos.png)
-python analise_nulos.py
-
-# Pré-processamento e geração dos ficheiros limpos
-python preprocessamento.py
-```
-
----
 
 ---
 
