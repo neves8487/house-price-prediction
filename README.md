@@ -1,124 +1,137 @@
-# 🏠 House Prices - Advanced Regression Techniques (Kaggle)
+# 🏠 House Prices - Advanced Regression Techniques
 
-Projeto prático de previsão de preços imobiliários baseado na competição do Kaggle [House Prices: Advanced Regression Techniques](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques).
+An end-to-end Machine Learning pipeline solving the Kaggle [House Prices: Advanced Regression Techniques](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques) competition.
 
-O objetivo deste projeto é prever o preço final de venda de cada casa (`SalePrice`) em Ames, Iowa, utilizando 79 variáveis explicativas que descrevem quase todos os aspetos dos imóveis residenciais.
+The objective is to predict residential sale prices (`SalePrice`) in Ames, Iowa, using 79 explanatory features covering physical, spatial, and structural characteristics of residential properties.
 
 ---
 
-## 📌 Estrutura do Projeto
+## 📌 Project Architecture
 
 ```bash
 house_price/
 ├── data/
-│   ├── train.csv               # Dataset bruto de treino (1.460 casas)
-│   ├── test.csv                # Dataset bruto de teste (1.459 casas)
-│   ├── data_description.txt    # Dicionário de dados oficial
-│   ├── train_clean.csv         # Dados de treino pré-processados (zero nulos)
-│   └── test_clean.csv          # Dados de teste pré-processados (zero nulos)
+│   ├── train.csv               # Raw training dataset (1,460 homes)
+│   ├── test.csv                # Raw test dataset (1,459 homes)
+│   ├── data_description.txt    # Official Ames dataset dictionary
+│   ├── train_clean.csv         # Processed training data (zero missing values)
+│   └── test_clean.csv          # Processed test data (zero missing values)
 ├── plots/
-│   ├── exploracao_inicial.png  # Gráficos da distribuição e correlações
-│   ├── analise_nulos.png       # Gráfico com o ranking de missing values
-│   └── importancia_features.png# Top 15 features mais decisivas no modelo
-├── exploracao_inicial.py       # Script de Análise Exploratória (EDA)
-├── analise_nulos.py            # Script de mapeamento e interpretação de nulos
-├── preprocessamento.py         # Pipeline de Feature Engineering e Encoding
-├── treinar_modelos.py          # Treino com 5-Fold CV, Ensemble e previsões
-├── submission.csv              # Ficheiro final de submissão do Kaggle
+│   ├── exploracao_inicial.png  # Exploratory Data Analysis & correlation plots
+│   ├── analise_nulos.png       # Missing value ranking and diagnostics
+│   └── importancia_features.png# Top 15 most important features (LightGBM)
+├── eda.py                      # Exploratory Data Analysis (EDA) script
+├── missing_analysis.py         # Missing data inspection & business logic mapping
+├── preprocess.py               # Feature Engineering & data transformation pipeline
+├── train.py                    # 5-Fold Cross-Validation, Ensemble Blending & inference
+├── submission.csv              # Final formatted Kaggle submission file
+├── requirements.txt            # Project dependencies
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## 🔍 1. Análise Exploratória de Dados (EDA)
+## 🔍 1. Exploratory Data Analysis (EDA)
 
-Na primeira fase, explorámos a distribuição do preço e calculámos o coeficiente de correlação de Pearson para identificar os fatores que mais afetam o valor dos imóveis:
+Key statistical and exploratory findings:
 
-- **Target (`SalePrice`)**: A distribuição original é positivamente assimétrica (*right-skewed*), variando entre **$34.900** e **$755.000** (mediana: **$163.000**). Por esta razão, aplicou-se a transformação logarítmica `np.log1p` para aproximar a distribuição à normalidade e alinhar com a métrica da competição (**RMSLE**).
-- **Top Fatores Correlacionados**:
-  1. `OverallQual` (+0.791): Qualidade geral dos materiais e acabamentos.
-  2. `GrLivArea` (+0.709): Área habitável acima do solo.
-  3. `GarageCars` (+0.640) / `GarageArea` (+0.623): Capacidade e dimensão da garagem.
-  4. `TotalBsmtSF` (+0.614): Área da cave (*basement*).
-  5. `1stFlrSF` (+0.606): Área do piso térreo.
-  6. `FullBath` (+0.561): Número de casas de banho completas.
-  7. `YearBuilt` (+0.523): Ano de construção original.
-
----
-
-## 🛠️ 2. Tratamento de Dados e Engenharia de Atributos (*Feature Engineering*)
-
-### A) Tratamento de Falsos Nulos
-- Colunas como `PoolQC`, `MiscFeature`, `Alley`, `Fence`, `FireplaceQu`, `GarageType` e `BsmtQual` possuem valores `NA` que representam a **ausência do elemento** (ex: "Sem Piscina", "Sem Garagem"), e não erros de medição. Foram convertidas para `'None'` ou `0`.
-- Para o `LotFrontage` (largura da frente da casa), imputámos os valores em falta através da **mediana do respetivo bairro (`Neighborhood`)**.
-
-### B) Mapeamento Ordinal
-- Variáveis qualitativas com escala de avaliação explícita (`Ex`, `Gd`, `TA`, `Fa`, `Po`, `None`) foram convertidas numa escala numérica de `5` a `0`.
-- A coluna `Fence` (cerca) foi mapeada de `0` a `4` com base no grau de privacidade e material (`GdPrv` = 4, `MnPrv` = 3, `GdWo` = 2, `MnWw` = 1, `None` = 0).
-
-### C) Novas Variáveis Criadas
-- `TotalSF`: Área útil total ($\text{Cave} + \text{1º Piso} + \text{2º Piso}$).
-- `TotalBath`: Total ponderado de casas de banho ($\text{FullBath} + 0.5 \times \text{HalfBath} + \text{BsmtFullBath} + 0.5 \times \text{BsmtHalfBath}$).
-- `HouseAge`: Idade do imóvel no ano da venda ($\text{YrSold} - \text{YearBuilt}$).
-- `RemodAge`: Anos desde a última remodelação ($\text{YrSold} - \text{YearRemodAdd}$).
-- `TotalPorchSF`: Soma das áreas de varandas e alpendres.
-- `OverallScore`: Interação multiplicativa entre qualidade e condição ($\text{OverallQual} \times \text{OverallCond}$).
-- Indicadores binários: `HasPool`, `HasGarage`, `HasBasement`, `HasFireplace`, `Has2ndFloor`.
+- **Target (`SalePrice`)**: The target distribution is positively skewed (right-skewed), with values ranging between **$34,900** and **$755,000** (median: **$163,000**). To stabilize variance and optimize directly for the competition's **RMSLE** metric, a `np.log1p` transformation is applied.
+- **Top Linear Correlates**:
+  1. `OverallQual` (+0.791): Overall material and finish quality.
+  2. `GrLivArea` (+0.709): Above-ground living area in sq ft.
+  3. `GarageCars` (+0.640) / `GarageArea` (+0.623): Garage capacity and size.
+  4. `TotalBsmtSF` (+0.614): Total basement area.
+  5. `1stFlrSF` (+0.606): First-floor living area.
+  6. `FullBath` (+0.561): Number of full bathrooms.
+  7. `YearBuilt` (+0.523): Original construction year.
 
 ---
 
-## 🏆 3. Modelação e Resultados (5-Fold Cross-Validation)
+## 🛠️ 2. Data Cleaning & Feature Engineering
 
-Utilizámos uma estratégia de validação cruzada robusta com 5 folds, avaliando com a métrica oficial **RMSLE** (*Root Mean Squared Log Error*):
+### A) Domain Imputation for Missing Values
+- **Structural "Absence" NAs**: Categorical attributes such as `PoolQC`, `MiscFeature`, `Alley`, `Fence`, `FireplaceQu`, `GarageType`, and `BsmtQual` use `NA` to indicate the absence of the amenity (e.g., "No Pool", "No Garage"), rather than missing measurements. These were explicitly imputed as `'None'`.
+- **Numerical NAs**: Missing numerical entries for garage and basement properties (`GarageArea`, `TotalBsmtSF`, etc.) were imputed as `0`.
+- **LotFrontage**: Imputed using the median street frontage of the corresponding `Neighborhood`.
 
-| Posição | Modelo | RMSLE CV (Menor é Melhor) | Notas |
+### B) Ordinal Encoding
+- Qualitative features with explicit rating ranks (`Ex`, `Gd`, `TA`, `Fa`, `Po`, `None`) were converted to an integer scale from `5` down to `0`.
+- `Fence` and basement finish quality types were mapped to appropriate ordinal integer scales.
+
+### C) Domain-Specific Features
+- `TotalSF`: Total usable property square footage ($\text{Basement} + \text{1stFlr} + \text{2ndFlr}$).
+- `TotalBath`: Weighted total bathroom count ($\text{FullBath} + 0.5 \times \text{HalfBath} + \text{BsmtFullBath} + 0.5 \times \text{BsmtHalfBath}$).
+- `HouseAge`: Property age at sale ($\text{YrSold} - \text{YearBuilt}$).
+- `RemodAge`: Years since last renovation ($\text{YrSold} - \text{YearRemodAdd}$).
+- `TotalPorchSF`: Combined square footage of all porch and deck areas.
+- `OverallScore`: Interaction term multiplying overall quality by condition ($\text{OverallQual} \times \text{OverallCond}$).
+- Binary amenity indicators: `HasPool`, `HasGarage`, `HasBasement`, `HasFireplace`, `Has2ndFloor`.
+
+---
+
+## 🏆 3. Modeling & 5-Fold Cross-Validation
+
+Models were evaluated using a 5-Fold Cross-Validation strategy with the official **RMSLE** (*Root Mean Squared Log Error*) metric:
+
+| Rank | Model | 5-Fold CV RMSLE | Notes |
 | :---: | :--- | :---: | :--- |
-| **🥇 #1** | **ENSEMBLE (Blend Ponderado)** | **0.1115** | Combinação ponderada de lineares e árvores |
-| **🥈 #2** | **Lasso (Linear L1)** | **0.1148** | Seleção esparsa de variáveis com regularização |
-| **🥉 #3** | **Ridge (Linear L2)** | **0.1152** | Regularização quadrática suave |
-| **#4** | **XGBoost** | **0.1176** | Gradient Boosted Trees (1200 estimators) |
-| **#5** | **LightGBM** | **0.1214** | Gradient Boosted Trees rápido |
+| **🥇 #1** | **ENSEMBLE (Weighted Blend)** | **0.1115** | Optimal blend combining regularized linear & tree-based models |
+| **🥈 #2** | **Lasso (Linear L1)** | **0.1148** | RobustScaler + L1 regularization for feature sparsity |
+| **🥉 #3** | **Ridge (Linear L2)** | **0.1152** | RobustScaler + L2 regularization |
+| **#4** | **XGBoost** | **0.1176** | Gradient Boosted Decision Trees (1,200 estimators) |
+| **#5** | **LightGBM** | **0.1214** | Fast histogram-based Gradient Boosted Trees |
 
-> **Insight Teórico**: O **Ensemble** bateu todos os modelos individuais isolados, demonstrando o poder de combinar abordagens lineares com modelos baseados em árvores.
-
----
-
-## 📊 4. Importância das Características (*Feature Importance*)
-
-O gráfico gerado em `plots/importancia_features.png` demonstra que as variáveis de **área total útil (`TotalSF`)**, **qualidade geral (`OverallQual`)**, **área habitável (`GrLivArea`)** e **idade do imóvel (`HouseAge`)** foram as mais decisivas na previsão do preço.
+> **Key Takeaway**: The **Weighted Ensemble Blend** outperformed every individual model, demonstrating the variance-reduction benefits of ensembling linear regularized models with gradient boosted trees.
 
 ---
 
-## 🚀 Como Executar Localmente
+## 📊 4. Feature Importance
 
-### 1. Criar e ativar o ambiente virtual:
-```powershell
+Feature importance extracted from tree splits confirms that **total usable area (`TotalSF`)**, **overall quality (`OverallQual`)**, **above ground living area (`GrLivArea`)**, and **property age (`HouseAge`)** are the strongest drivers in house price determination.
+
+---
+
+## 🚀 How to Run Locally
+
+### 1. Clone the repository and set up environment:
+```bash
+git clone https://github.com/neves8487/house-price-prediction.git
+cd house-price-prediction
 python -m venv .venv
-.\.venv\Scripts\activate
 ```
 
-### 2. Instalar as dependências:
-```powershell
-pip install pandas numpy scikit-learn lightgbm xgboost matplotlib seaborn
+Activate the environment:
+* **Windows (PowerShell):**
+  ```powershell
+  .\.venv\Scripts\activate
+  ```
+* **Linux / macOS:**
+  ```bash
+  source .venv/bin/activate
+  ```
+
+### 2. Install dependencies:
+```bash
+pip install -r requirements.txt
 ```
 
-### 3. Executar o pipeline completo:
-```powershell
-# 1. Análise exploratória inicial (gera plots/exploracao_inicial.png)
-python exploracao_inicial.py
+### 3. Run the pipeline:
+```bash
+# 1. Exploratory data analysis (outputs plots/exploracao_inicial.png)
+python eda.py
 
-# 2. Análise de missing values (gera plots/analise_nulos.png)
-python analise_nulos.py
+# 2. Missing values analysis (outputs plots/analise_nulos.png)
+python missing_analysis.py
 
-# 3. Pré-processamento e geração dos ficheiros limpos
-python preprocessamento.py
+# 3. Data preprocessing & feature engineering (generates clean datasets)
+python preprocess.py
 
-# 4. Treino com 5-Fold CV, Ensemble e geração do submission.csv
-python treinar_modelos.py
+# 4. Train models with 5-Fold CV, generate ensemble & submission.csv
+python train.py
 ```
 
 ---
 
-## 📤 5. Submissão no Kaggle
-O ficheiro final [submission.csv](submission.csv) contém 1.459 previsões prontas para upload na página da competição do Kaggle.
+## 📤 Kaggle Submission
+The generated `submission.csv` contains 1,459 test predictions formatted and ready for upload to the Kaggle competition evaluation engine.
